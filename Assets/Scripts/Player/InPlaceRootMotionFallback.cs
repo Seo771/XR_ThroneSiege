@@ -22,6 +22,8 @@ namespace ThroneSiege.Player
         private Transform cameraTransform;
         private bool jumpRequested;
 
+        public void RequestJump() { jumpRequested = true; }
+
         private void Update()
         {
             // Standard Assets only accepts jumps from a state named Grounded.
@@ -41,6 +43,10 @@ namespace ThroneSiege.Player
             }
 
             jumpRequested = false;
+            // Run after ThirdPersonUserControl/ThirdPersonCharacter, but before
+            // AnimatePhysics evaluates transitions. LateUpdate is too late:
+            // the asset motor would overwrite OnGround on the next physics tick.
+            UpdateGroundParameters();
         }
 
         private void Awake()
@@ -59,12 +65,20 @@ namespace ThroneSiege.Player
         {
             // The asset controller probes from the model pivot, which may be below
             // the floor for this mesh. Use the capsule's actual bottom instead.
-            animator.SetBool("OnGround", body.velocity.y <= 0.1f && IsGrounded());
+            if (animator.updateMode != AnimatorUpdateMode.AnimatePhysics)
+                UpdateGroundParameters();
             // Magnitude works in every direction, including while turning toward
             // the camera-relative movement direction. Forward can be zero then.
             float speed = Vector2.ClampMagnitude(new Vector2(
                 Input.GetAxis("Horizontal"), Input.GetAxis("Vertical")), 1f).magnitude;
             animator.SetFloat("MoveSpeed", speed, 0.1f, Time.deltaTime);
+        }
+
+        private void UpdateGroundParameters()
+        {
+            bool grounded = body.velocity.y <= 0.1f && IsGrounded();
+            animator.SetBool("OnGround", grounded);
+            animator.SetFloat("Jump", grounded ? 0f : body.velocity.y);
         }
 
         private void OnAnimatorMove()

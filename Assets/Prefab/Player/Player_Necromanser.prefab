@@ -6730,7 +6730,7 @@ GameObject:
   - component: {fileID: 5628235523788800144}
   - component: {fileID: 5628235523788800149}
   m_Layer: 0
-  m_Name: Necromanser Prefab
+  m_Name: Player_Necromanser
   m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
