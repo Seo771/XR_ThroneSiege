@@ -16,7 +16,7 @@ namespace ThroneSiege.Editor
         private const string ControllerPath = Folder + "/CrusaderTankAI.controller";
         private const string PrefabPath = "Assets/ThroneSiege/Prefabs/CrusaderTankEnemy.prefab";
 
-        [MenuItem("ThroneSiege/Build Crusader Tank AI")]
+        [MenuItem("ThroneSiege")]
         public static void Build()
         {
             EnsureFolder(Folder);
@@ -42,7 +42,7 @@ namespace ThroneSiege.Editor
             if (controller == null) controller = AnimatorController.CreateAnimatorControllerAtPath(ControllerPath);
             else
             {
-                // Rebuild only this generated controller, retaining its GUID.
+                // GUID를 유지하면서 프로젝트 전용 컨트롤러의 내부 구성만 다시 만든다.
                 foreach (UnityEngine.Object child in AssetDatabase.LoadAllAssetsAtPath(ControllerPath))
                     if (child != controller) UnityEngine.Object.DestroyImmediate(child, true);
                 controller.layers = new AnimatorControllerLayer[0];
@@ -67,7 +67,7 @@ namespace ThroneSiege.Editor
             sm.defaultState = idleState;
             Condition(idleState.AddTransition(combatState), "InCombat", AnimatorConditionMode.If);
             Condition(combatState.AddTransition(idleState), "InCombat", AnimatorConditionMode.IfNot);
-            // Death is checked first and cannot transition out to Hit or an attack.
+            // 사망을 먼저 검사하고, 사망 후에는 피격이나 공격 상태로 전이하지 않게 한다.
             Condition(sm.AddAnyStateTransition(deathState), "Dead", AnimatorConditionMode.If, 0.05f);
             AnimatorStateTransition hitTransition = sm.AddAnyStateTransition(hitState);
             Condition(hitTransition, "Hit", AnimatorConditionMode.If, 0.05f);
@@ -107,8 +107,8 @@ namespace ThroneSiege.Editor
                 enemy = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(
                     "Assets/AssetStore/Crusader tank/prefab/Crusader tank_prefab.prefab"));
             enemy.name = "CrusaderTankEnemy";
-            // The user may already have placed a Standard Assets AI character.
-            // Keep its components, but let this agent own movement exclusively.
+            // 이미 배치된 Standard Assets AI 캐릭터의 컴포넌트는 유지하되,
+            // 이동은 이 NavMeshAgent만 담당하도록 기존 이동 컴포넌트를 비활성화한다.
             foreach (MonoBehaviour component in enemy.GetComponents<MonoBehaviour>())
                 if (component is UnityStandardAssets.Characters.ThirdPerson.ThirdPersonCharacter ||
                     component is UnityStandardAssets.Characters.ThirdPerson.AICharacterControl ||
@@ -125,7 +125,7 @@ namespace ThroneSiege.Editor
             animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
             Bounds bounds = enemy.GetComponentsInChildren<Renderer>().First().bounds;
             foreach (Renderer renderer in enemy.GetComponentsInChildren<Renderer>()) bounds.Encapsulate(renderer.bounds);
-            // Size the collision capsule from the imported model, in root-local units.
+            // 가져온 모델의 크기를 루트 로컬 좌표로 환산해 충돌 캡슐의 크기를 맞춘다.
             enemy.transform.position += Vector3.up * (floor.GetComponent<Collider>().bounds.max.y - bounds.min.y);
             CapsuleCollider capsule = enemy.GetComponent<CapsuleCollider>();
             if (capsule == null) capsule = enemy.AddComponent<CapsuleCollider>();
@@ -144,7 +144,7 @@ namespace ThroneSiege.Editor
             if (ai == null) ai = enemy.AddComponent<CrusaderTankAI>();
             float[] durations = attacks.Select(clip => clip.length).ToArray();
             ai.Configure(null, durations, hit.length);
-            // Save the reusable enemy without a reference to this scene's player.
+            // 재사용할 적 프리팹에는 현재 씬의 플레이어 참조를 저장하지 않는다.
             PrefabUtility.SaveAsPrefabAsset(enemy, PrefabPath);
             ai.Configure(player.transform, durations, hit.length);
             EditorUtility.SetDirty(ai);

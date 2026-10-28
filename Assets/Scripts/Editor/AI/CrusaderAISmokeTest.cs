@@ -9,7 +9,7 @@ using ThroneSiege.Combat;
 
 namespace ThroneSiege.Editor
 {
-    // Checks only the running test scene; exiting Play Mode restores scene objects.
+    // 실행 중인 테스트 씬만 검사하며, 플레이 모드 종료 시 씬 오브젝트는 원래 상태로 돌아간다.
     [InitializeOnLoad]
     public static class CrusaderAISmokeTest
     {
@@ -23,7 +23,7 @@ namespace ThroneSiege.Editor
 
         static CrusaderAISmokeTest() { EditorApplication.playModeStateChanged += OnPlayMode; }
 
-        [MenuItem("ThroneSiege/Test Crusader AI")]
+        [MenuItem("ThroneSiege")]
         public static void Run()
         {
             if (EditorApplication.isPlaying) throw new InvalidOperationException("Stop Play Mode before running the test.");

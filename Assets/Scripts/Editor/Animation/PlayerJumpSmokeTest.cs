@@ -18,7 +18,7 @@ namespace ThroneSiege.Editor
 
         static PlayerJumpSmokeTest() { EditorApplication.playModeStateChanged += OnPlayMode; }
 
-        [MenuItem("ThroneSiege/Test Player Jump")]
+        [MenuItem("ThroneSiege/플레이어 점프 테스트")]
         public static void Run()
         {
             if (EditorApplication.isPlaying) return;

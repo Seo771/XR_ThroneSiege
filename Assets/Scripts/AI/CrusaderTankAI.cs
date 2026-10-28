@@ -15,6 +15,7 @@ namespace ThroneSiege.AI
         [SerializeField, Min(0f)] private float runSpeed = 3f;
         [SerializeField, Min(0f)] private float attackCooldown = 1.3f;
         [SerializeField, Min(0f)] private float damage = 12f;
+        [Tooltip("공격 1 / 공격 2 / 방패 공격 순서 (초)")]
         [SerializeField] private float[] attackDurations = { 2f, 2f, 2f };
         [SerializeField] private float hitDuration = 0.6f;
         [field: SerializeField] public BehaviourState State { get; private set; }
@@ -65,7 +66,7 @@ namespace ThroneSiege.AI
             if (State == BehaviourState.Attack)
             {
                 if (!facingLocked && target != null) FaceTarget();
-                // Watchdog prevents a missing animation event from locking the AI.
+                // 애니메이션 이벤트가 누락돼도 제한 시간이 지나면 공격 상태를 종료한다.
                 if (Time.time >= stateEndTime) AttackFinished();
                 return;
             }
@@ -81,7 +82,7 @@ namespace ThroneSiege.AI
             if (distance > detectionRange)
             { Stop(); animator.SetBool("InCombat", false); State = BehaviourState.Idle; return; }
 
-            // Hysteresis avoids repeatedly starting/stopping the agent on the range boundary.
+            // 추적 시작과 종료 거리에 여유를 두어 경계에서 이동과 정지가 반복되지 않게 한다.
             float range = State == BehaviourState.Chase ? attackRange : attackRange + 0.3f;
             if (distance > range)
             {
@@ -120,7 +121,7 @@ namespace ThroneSiege.AI
             stateEndTime = Time.time + attackDurations[attackIndex] + 0.4f;
         }
 
-        // Called from project-owned attack clips; the turn lock gives the player a dodge window.
+        // 프로젝트 전용 공격 클립에서 호출한다. 공격 방향을 고정해 플레이어가 피할 틈을 준다.
         public void LockAttackFacing() { if (State == BehaviourState.Attack) facingLocked = true; }
 
         public void AttackImpact()
@@ -130,7 +131,7 @@ namespace ThroneSiege.AI
             if (target == null || targetHealth == null || targetHealth.IsDead) return;
             Vector3 offset = target.position - transform.position;
             if (offset.magnitude > attackRange + 0.25f || Vector3.Angle(transform.forward, offset) > 65f) return;
-            // Geometry blocks melee damage; colliders on either actor are ignored here.
+            // 두 캐릭터 사이에 장애물이 있으면 피해를 막는다. 양측 캐릭터의 콜라이더는 제외한다.
             Vector3 origin = transform.position + Vector3.up;
             foreach (RaycastHit hit in Physics.RaycastAll(origin, offset.normalized, offset.magnitude,
                 Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
@@ -147,7 +148,7 @@ namespace ThroneSiege.AI
 
         private void OnDamaged()
         {
-            // Ordinary hits do not interrupt committed attacks.
+            // 일반 피격으로 이미 시작한 공격을 중단하지 않는다.
             if (State == BehaviourState.Attack || State == BehaviourState.Hit) return;
             Stop(); State = BehaviourState.Hit;
             stateEndTime = Time.time + hitDuration;

@@ -18,13 +18,13 @@ namespace ThroneSiege.Editor
         private const string ScenePath = "Assets/Scenes/SampleScene.unity";
         private const string SourceFolder = "Assets/AssetStore/Necromanser/Animations";
 
-        [MenuItem("ThroneSiege/Build Necromancer Player Animator")]
+        [MenuItem("ThroneSiege/네크로맨서 플레이어 Animator 구성")]
         public static void BuildFromMenu()
         {
             Build();
         }
 
-        // Entry point for Unity's -executeMethod command-line option.
+        // Unity 명령줄의 -executeMethod 옵션에서 호출하는 진입점이다.
         public static void BuildFromCommandLine()
         {
             try

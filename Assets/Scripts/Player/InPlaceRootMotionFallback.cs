@@ -3,9 +3,9 @@ using UnityEngine;
 namespace ThroneSiege.Player
 {
     /// <summary>
-    /// Keeps the Standard Assets third-person controller usable with in-place clips.
-    /// ThirdPersonCharacter normally derives horizontal velocity from Animator.deltaPosition.
-    /// When the active clip has no root translation, this component supplies that velocity.
+    /// 제자리 애니메이션에서도 Standard Assets 3인칭 컨트롤러가 이동하도록 보완한다.
+    /// ThirdPersonCharacter는 원래 Animator.deltaPosition으로 수평 속도를 계산한다.
+    /// 클립에 루트 이동이 없으면 이 컴포넌트가 수평 이동 속도를 제공한다.
     /// </summary>
     [DefaultExecutionOrder(1000)]
     [RequireComponent(typeof(Animator), typeof(Rigidbody), typeof(CapsuleCollider))]
@@ -13,6 +13,7 @@ namespace ThroneSiege.Player
     {
         [SerializeField, Min(0f)] private float moveSpeed = 3.5f;
         [SerializeField, Min(0f)] private float groundProbeDistance = 0.35f;
+        [Tooltip("이 값 이하의 루트 이동은 입력으로 보완")]
         [SerializeField, Min(0f)] private float rootMotionThreshold = 0.0001f;
         [SerializeField, Min(0f)] private float jumpPower = 12f;
 
@@ -26,8 +27,8 @@ namespace ThroneSiege.Player
 
         private void Update()
         {
-            // Standard Assets only accepts jumps from a state named Grounded.
-            // Support the player's Idle default state without changing that asset.
+            // Standard Assets는 Grounded 상태에서만 점프를 허용한다.
+            // 원본을 수정하지 않고 플레이어의 기본 Idle 상태에서도 점프하도록 보완한다.
             jumpRequested |= Input.GetButtonDown("Jump");
         }
 
@@ -43,9 +44,9 @@ namespace ThroneSiege.Player
             }
 
             jumpRequested = false;
-            // Run after ThirdPersonUserControl/ThirdPersonCharacter, but before
-            // AnimatePhysics evaluates transitions. LateUpdate is too late:
-            // the asset motor would overwrite OnGround on the next physics tick.
+            // ThirdPersonUserControl과 ThirdPersonCharacter 처리 후,
+            // AnimatePhysics가 전이를 평가하기 전에 지면 상태를 반영한다.
+            // LateUpdate에서 처리하면 다음 물리 갱신 때 이동 컴포넌트가 OnGround를 덮어쓴다.
             UpdateGroundParameters();
         }
 
@@ -63,12 +64,12 @@ namespace ThroneSiege.Player
 
         private void LateUpdate()
         {
-            // The asset controller probes from the model pivot, which may be below
-            // the floor for this mesh. Use the capsule's actual bottom instead.
+            // 원본 컨트롤러의 검사 기준인 모델 피벗이 바닥 아래에 있을 수 있으므로
+            // 캡슐 콜라이더의 실제 아래쪽을 기준으로 지면을 검사한다.
             if (animator.updateMode != AnimatorUpdateMode.AnimatePhysics)
                 UpdateGroundParameters();
-            // Magnitude works in every direction, including while turning toward
-            // the camera-relative movement direction. Forward can be zero then.
+            // 카메라 기준 이동 방향으로 회전하는 동안 Forward가 0이 될 수 있으므로
+            // 입력 벡터의 크기로 방향에 관계없이 이동 애니메이션을 갱신한다.
             float speed = Vector2.ClampMagnitude(new Vector2(
                 Input.GetAxis("Horizontal"), Input.GetAxis("Vertical")), 1f).magnitude;
             animator.SetFloat("MoveSpeed", speed, 0.1f, Time.deltaTime);
@@ -83,7 +84,7 @@ namespace ThroneSiege.Player
 
         private void OnAnimatorMove()
         {
-            // Let ThirdPersonCharacter handle clips that contain usable root translation.
+            // 유효한 루트 이동이 있는 클립은 ThirdPersonCharacter가 처리한다.
             if (animator.deltaPosition.sqrMagnitude > rootMotionThreshold * rootMotionThreshold)
             {
                 return;
@@ -110,7 +111,7 @@ namespace ThroneSiege.Player
 
             Vector3 desiredMove = Vector3.ClampMagnitude(vertical * forward + horizontal * right, 1f);
 
-            // Match ThirdPersonUserControl: holding Shift selects the slower walk speed.
+            // ThirdPersonUserControl과 동일하게 Shift를 누르면 느린 걷기 속도를 적용한다.
             if (Input.GetKey(KeyCode.LeftShift))
             {
                 desiredMove *= 0.5f;
