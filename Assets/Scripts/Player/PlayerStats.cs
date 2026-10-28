@@ -28,6 +28,8 @@ namespace ThroneSiege.Player
         public bool IsBattleActive { get; private set; }
         public event Action PhaseTwoEntered;
         public event Action StatsChanged;
+        public event Action BattleEnded;
+        public event Action BattleReset;
 
         private void Awake()
         {
@@ -44,7 +46,12 @@ namespace ThroneSiege.Player
 
         private void OnDisable() { Health.HealthChanged -= OnHealthChanged; }
 
-        public void EndBattle() { IsBattleActive = false; }
+        public void EndBattle()
+        {
+            if (!IsBattleActive) return;
+            IsBattleActive = false;
+            BattleEnded?.Invoke();
+        }
 
         public void ResetForNewBattle()
         {
@@ -52,6 +59,7 @@ namespace ThroneSiege.Player
             IsPhaseTwo = false;
             Health.ResetHealth(maxHealth);
             IsBattleActive = true;
+            BattleReset?.Invoke();
             StatsChanged?.Invoke();
         }
 
