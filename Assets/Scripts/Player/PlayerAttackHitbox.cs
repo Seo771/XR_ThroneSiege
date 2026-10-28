@@ -6,6 +6,7 @@ using UnityEngine;
 namespace ThroneSiege.Player
 {
     [DisallowMultipleComponent]
+    [RequireComponent(typeof(PlayerStats))]
     public sealed class PlayerAttackHitbox : MonoBehaviour
     {
         [Header("공격 범위")]
@@ -14,15 +15,20 @@ namespace ThroneSiege.Player
         [SerializeField, Min(0f)] private float originHeight = 1f;
 
         private readonly HashSet<ActorHealth> hitTargets = new HashSet<ActorHealth>();
+        private PlayerStats stats;
+
+        private void Awake() { stats = GetComponent<PlayerStats>(); }
 
         public void ApplyDamage(float damage)
         {
-            if (damage <= 0f) return;
+            if (damage <= 0f || !stats.IsBattleActive || stats.Health.IsDead) return;
             hitTargets.Clear();
             Vector3 origin = transform.position + Vector3.up * originHeight;
             foreach (Collider collider in Physics.OverlapSphere(origin, range,
                 Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
             {
+                // 사망 이벤트에서 승패가 결정되면 남은 대상에게 피해를 주지 않는다.
+                if (!stats.IsBattleActive || stats.Health.IsDead) break;
                 EnemyStats enemy = collider.GetComponentInParent<EnemyStats>();
                 if (enemy == null || enemy.transform.IsChildOf(transform) ||
                     enemy.Health == null || enemy.Health.IsDead || hitTargets.Contains(enemy.Health))

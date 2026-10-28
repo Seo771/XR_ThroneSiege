@@ -50,6 +50,5 @@
         "ProjectSettings/": true,
         "temp/": true,
         "Temp/": true
-    },
-    "dotnet.defaultSolution": "XR_ThroneSiege.sln"
+    }
 }

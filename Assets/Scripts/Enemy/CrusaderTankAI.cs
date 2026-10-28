@@ -29,6 +29,19 @@ namespace ThroneSiege.AI
         private bool facingLocked;
         private int attackIndex;
         private int comboIndex;
+        private bool battleActive = true;
+
+        public void SetBattleActive(bool active)
+        {
+            battleActive = active;
+            if (active || health.IsDead) return;
+            Stop();
+            State = BehaviourState.Idle;
+            animator.ResetTrigger("Attack");
+            animator.ResetTrigger("Hit");
+            animator.SetBool("InCombat", false);
+            animator.SetFloat("Speed", 0f);
+        }
 
         public void Configure(Transform player, float[] durations, float reactionDuration)
         { target = player; attackDurations = durations; hitDuration = reactionDuration; }
@@ -60,7 +73,7 @@ namespace ThroneSiege.AI
 
         private void Update()
         {
-            if (State == BehaviourState.Death) return;
+            if (!battleActive || State == BehaviourState.Death) return;
             animator.SetFloat("Speed", agent.enabled && agent.isOnNavMesh ? agent.velocity.magnitude : 0f, 0.1f, Time.deltaTime);
             if (State == BehaviourState.Attack)
             {
@@ -125,7 +138,7 @@ namespace ThroneSiege.AI
 
         public void AttackImpact()
         {
-            if (State != BehaviourState.Attack || health.IsDead || impactConsumed) return;
+            if (!battleActive || State != BehaviourState.Attack || health.IsDead || impactConsumed) return;
             impactConsumed = true;
             if (target == null || targetHealth == null || targetHealth.IsDead) return;
             Vector3 offset = target.position - transform.position;
@@ -148,7 +161,7 @@ namespace ThroneSiege.AI
         private void OnDamaged()
         {
             // 일반 피격으로 이미 시작한 공격을 중단하지 않는다.
-            if (State == BehaviourState.Attack || State == BehaviourState.Hit) return;
+            if (!battleActive || State == BehaviourState.Attack || State == BehaviourState.Hit) return;
             Stop(); State = BehaviourState.Hit;
             stateEndTime = Time.time + hitDuration;
             animator.SetTrigger("Hit");
