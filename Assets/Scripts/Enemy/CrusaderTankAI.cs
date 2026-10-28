@@ -5,16 +5,13 @@ using ThroneSiege.Combat;
 namespace ThroneSiege.AI
 {
     [RequireComponent(typeof(NavMeshAgent), typeof(Animator), typeof(ActorHealth))]
+    [RequireComponent(typeof(EnemyStats))]
     public sealed class CrusaderTankAI : MonoBehaviour
     {
         public enum BehaviourState { Idle, Chase, CombatIdle, Attack, Hit, Death }
         [SerializeField] private Transform target;
         [SerializeField, Min(0f)] private float detectionRange = 15f;
         [SerializeField, Min(0.1f)] private float attackRange = 1.9f;
-        [SerializeField, Min(0f)] private float walkSpeed = 1.4f;
-        [SerializeField, Min(0f)] private float runSpeed = 3f;
-        [SerializeField, Min(0f)] private float attackCooldown = 1.3f;
-        [SerializeField, Min(0f)] private float damage = 12f;
         [Tooltip("공격 1 / 공격 2 / 방패 공격 순서 (초)")]
         [SerializeField] private float[] attackDurations = { 2f, 2f, 2f };
         [SerializeField] private float hitDuration = 0.6f;
@@ -23,6 +20,7 @@ namespace ThroneSiege.AI
         private NavMeshAgent agent;
         private Animator animator;
         private ActorHealth health;
+        private EnemyStats stats;
         private ActorHealth targetHealth;
         private float nextAttackTime;
         private float stateEndTime;
@@ -40,6 +38,7 @@ namespace ThroneSiege.AI
             agent = GetComponent<NavMeshAgent>();
             animator = GetComponent<Animator>();
             health = GetComponent<ActorHealth>();
+            stats = GetComponent<EnemyStats>();
             animator.applyRootMotion = false;
             agent.updateRotation = false;
             health.Damaged += OnDamaged;
@@ -89,7 +88,7 @@ namespace ThroneSiege.AI
                 State = BehaviourState.Chase;
                 animator.SetBool("InCombat", false);
                 if (!agent.enabled || !agent.isOnNavMesh) return;
-                agent.speed = distance > 4f ? runSpeed : walkSpeed;
+                agent.speed = distance > 4f ? stats.RunSpeed : stats.WalkSpeed;
                 agent.stoppingDistance = attackRange - 0.15f;
                 agent.isStopped = false;
                 if (Time.time >= repathTime)
@@ -136,14 +135,14 @@ namespace ThroneSiege.AI
             foreach (RaycastHit hit in Physics.RaycastAll(origin, offset.normalized, offset.magnitude,
                 Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
                 if (!hit.transform.IsChildOf(transform) && !hit.transform.IsChildOf(target)) return;
-            targetHealth.TakeDamage(attackIndex == 2 ? damage * 0.75f : damage);
+            targetHealth.TakeDamage(attackIndex == 2 ? stats.AttackDamage * 0.75f : stats.AttackDamage);
         }
 
         public void AttackFinished()
         {
             if (State != BehaviourState.Attack) return;
             State = BehaviourState.CombatIdle;
-            nextAttackTime = Time.time + attackCooldown;
+            nextAttackTime = Time.time + stats.AttackCooldown;
         }
 
         private void OnDamaged()

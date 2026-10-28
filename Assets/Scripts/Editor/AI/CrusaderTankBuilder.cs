@@ -140,6 +140,7 @@ namespace ThroneSiege.Editor
             agent.angularSpeed = 240f; agent.stoppingDistance = 1.75f;
             agent.updateRotation = false;
             if (enemy.GetComponent<ActorHealth>() == null) enemy.AddComponent<ActorHealth>();
+            if (enemy.GetComponent<EnemyStats>() == null) enemy.AddComponent<EnemyStats>();
             CrusaderTankAI ai = enemy.GetComponent<CrusaderTankAI>();
             if (ai == null) ai = enemy.AddComponent<CrusaderTankAI>();
             float[] durations = attacks.Select(clip => clip.length).ToArray();

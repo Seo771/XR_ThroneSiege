@@ -23,7 +23,7 @@ namespace ThroneSiege.Combat
 
         private void Awake()
         {
-            // PlayerStats가 먼저 설정한 최대 체력과 현재 체력을 유지한다.
+            // 능력치 컴포넌트가 먼저 초기화한 체력을 유지한다.
             if (!initialized) ResetHealth(maxHealth);
         }
 
