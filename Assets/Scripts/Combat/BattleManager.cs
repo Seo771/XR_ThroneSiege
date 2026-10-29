@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using ThroneSiege.AI;
 using ThroneSiege.Player;
 using UnityEngine;
@@ -16,20 +15,22 @@ namespace ThroneSiege.Combat
         [Header("전투 참가자")]
         [Tooltip("미지정 시 같은 씬에서 검색")]
         [SerializeField] private PlayerStats player;
-        [SerializeField] private CrusaderTankAI[] enemies;
+        [Tooltip("미지정 시 같은 씬에서 적 1명 검색")]
+        [SerializeField] private CrusaderTankAI enemy;
 
         [Header("진행")]
         [SerializeField] private bool startAutomatically = true;
 
         public BattleState State { get; private set; } = BattleState.Waiting;
         public PlayerStats Player => player;
-        public int TotalEnemies => enemyHealth.Count;
+        public CrusaderTankAI Enemy => enemy;
+        public int TotalEnemies => enemyHealth != null ? 1 : 0;
         public int RemainingEnemies { get; private set; }
         public bool CanStartBattle => ready && State == BattleState.Waiting;
         public event Action<BattleState> StateChanged;
         public event Action<int> RemainingEnemiesChanged;
 
-        private readonly HashSet<ActorHealth> enemyHealth = new HashSet<ActorHealth>();
+        private ActorHealth enemyHealth;
         private bool ready;
 
         private void Awake()
@@ -38,13 +39,9 @@ namespace ThroneSiege.Combat
                 foreach (PlayerStats candidate in FindObjectsOfType<PlayerStats>())
                     if (candidate.gameObject.scene == gameObject.scene) { player = candidate; break; }
 
-            if (enemies == null || enemies.Length == 0)
-            {
-                var sceneEnemies = new List<CrusaderTankAI>();
-                foreach (CrusaderTankAI enemy in FindObjectsOfType<CrusaderTankAI>())
-                    if (enemy.gameObject.scene == gameObject.scene) sceneEnemies.Add(enemy);
-                enemies = sceneEnemies.ToArray();
-            }
+            if (enemy == null)
+                foreach (CrusaderTankAI candidate in FindObjectsOfType<CrusaderTankAI>())
+                    if (candidate.gameObject.scene == gameObject.scene) { enemy = candidate; break; }
 
             if (player != null && player.Health != null)
             {
@@ -52,12 +49,11 @@ namespace ThroneSiege.Combat
                 player.Health.Died += OnPlayerDied;
             }
 
-            foreach (CrusaderTankAI enemy in enemies)
+            if (enemy != null)
             {
-                if (enemy == null) continue;
                 enemy.SetBattleActive(false);
-                ActorHealth health = enemy.GetComponent<ActorHealth>();
-                if (health != null && enemyHealth.Add(health)) health.Died += OnEnemyDied;
+                enemyHealth = enemy.GetComponent<ActorHealth>();
+                if (enemyHealth != null) enemyHealth.Died += OnEnemyDied;
             }
 
             RemainingEnemies = CountLivingEnemies();
@@ -78,8 +74,7 @@ namespace ThroneSiege.Combat
             State = BattleState.Fighting;
             player.ResetForNewBattle();
             if (State != BattleState.Fighting) return;
-            foreach (CrusaderTankAI enemy in enemies)
-                if (enemy != null) enemy.SetBattleActive(true);
+            if (enemy != null) enemy.SetBattleActive(true);
             StateChanged?.Invoke(State);
             EvaluateResult();
         }
@@ -97,10 +92,7 @@ namespace ThroneSiege.Combat
 
         private int CountLivingEnemies()
         {
-            int count = 0;
-            foreach (ActorHealth health in enemyHealth)
-                if (health != null && !health.IsDead) count++;
-            return count;
+            return enemyHealth != null && !enemyHealth.IsDead ? 1 : 0;
         }
 
         private void EvaluateResult()
@@ -120,8 +112,7 @@ namespace ThroneSiege.Combat
         private void StopCombat()
         {
             if (player != null) player.EndBattle();
-            foreach (CrusaderTankAI enemy in enemies)
-                if (enemy != null) enemy.SetBattleActive(false);
+            if (enemy != null) enemy.SetBattleActive(false);
         }
 
         public void RestartBattle()
@@ -152,8 +143,7 @@ namespace ThroneSiege.Combat
         private void OnDestroy()
         {
             if (player != null && player.Health != null) player.Health.Died -= OnPlayerDied;
-            foreach (ActorHealth health in enemyHealth)
-                if (health != null) health.Died -= OnEnemyDied;
+            if (enemyHealth != null) enemyHealth.Died -= OnEnemyDied;
         }
     }
 }

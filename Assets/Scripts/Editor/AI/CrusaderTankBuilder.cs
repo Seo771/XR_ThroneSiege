@@ -143,11 +143,10 @@ namespace ThroneSiege.Editor
             if (enemy.GetComponent<EnemyStats>() == null) enemy.AddComponent<EnemyStats>();
             CrusaderTankAI ai = enemy.GetComponent<CrusaderTankAI>();
             if (ai == null) ai = enemy.AddComponent<CrusaderTankAI>();
-            float[] durations = attacks.Select(clip => clip.length).ToArray();
-            ai.Configure(null, durations, hit.length);
+            ai.Configure(null);
             // 재사용할 적 프리팹에는 현재 씬의 플레이어 참조를 저장하지 않는다.
             PrefabUtility.SaveAsPrefabAsset(enemy, PrefabPath);
-            ai.Configure(player.transform, durations, hit.length);
+            ai.Configure(player.transform);
             EditorUtility.SetDirty(ai);
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);

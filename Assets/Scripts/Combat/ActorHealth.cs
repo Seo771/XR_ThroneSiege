@@ -74,8 +74,10 @@ namespace ThroneSiege.Combat
             }
             else
             {
+                var playerCombat = drivePlayerAnimator ? GetComponent<ThroneSiege.Player.PlayerCombat>() : null;
+                bool suppressHitReaction = playerCombat != null && playerCombat.IsAttacking;
                 Damaged?.Invoke();
-                if (drivePlayerAnimator) GetComponent<Animator>()?.SetTrigger("Hit");
+                if (drivePlayerAnimator && !suppressHitReaction) GetComponent<Animator>()?.SetTrigger("Hit");
             }
             HealthChanged?.Invoke();
         }

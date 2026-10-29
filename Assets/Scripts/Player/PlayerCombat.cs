@@ -1,4 +1,6 @@
 using UnityEngine;
+using ThroneSiege.Combat;
+using UnityStandardAssets.Characters.ThirdPerson;
 
 namespace ThroneSiege.Player
 {
@@ -6,11 +8,6 @@ namespace ThroneSiege.Player
     [RequireComponent(typeof(PlayerStats), typeof(Animator), typeof(PlayerAttackHitbox))]
     public sealed class PlayerCombat : MonoBehaviour
     {
-        [Header("기본 공격")]
-        [Tooltip("Attack1 기준 임시 타격 시점 (초)")]
-        [SerializeField, Min(0f)] private float hitDelay = 2.5f;
-        [SerializeField, Min(0.1f)] private float attackDuration = 4.5f;
-
         public bool IsAttacking { get; private set; }
         public float CooldownRemaining => Mathf.Max(0f, nextAttackTime - Time.time);
 
@@ -18,20 +15,26 @@ namespace ThroneSiege.Player
         private Animator animator;
         private PlayerAttackHitbox hitbox;
         private float nextAttackTime;
-        private float hitTime;
-        private float finishTime;
+        private readonly AnimatorActionProgress attackProgress = new AnimatorActionProgress();
         private bool hitApplied;
+        private ThirdPersonUserControl input;
+        private bool restoreInput;
+        private Rigidbody body;
+        private BattleManager battle;
 
         private void Awake()
         {
             stats = GetComponent<PlayerStats>();
             animator = GetComponent<Animator>();
             hitbox = GetComponent<PlayerAttackHitbox>();
+            input = GetComponent<ThirdPersonUserControl>();
+            body = GetComponent<Rigidbody>();
+            foreach (BattleManager candidate in FindObjectsOfType<BattleManager>())
+                if (candidate.gameObject.scene == gameObject.scene) { battle = candidate; break; }
         }
 
         private void OnEnable()
         {
-            stats.Health.Damaged += CancelAttack;
             stats.Health.Died += CancelAttack;
             stats.BattleEnded += CancelAttack;
             stats.BattleReset += ResetCombat;
@@ -39,7 +42,6 @@ namespace ThroneSiege.Player
 
         private void OnDisable()
         {
-            stats.Health.Damaged -= CancelAttack;
             stats.Health.Died -= CancelAttack;
             stats.BattleEnded -= CancelAttack;
             stats.BattleReset -= ResetCombat;
@@ -48,7 +50,7 @@ namespace ThroneSiege.Player
 
         private void Update()
         {
-            if (!stats.IsBattleActive || stats.Health.IsDead)
+            if (!CanFight)
             {
                 CancelAttack();
                 return;
@@ -56,12 +58,7 @@ namespace ThroneSiege.Player
 
             if (IsAttacking)
             {
-                if (!hitApplied && Time.time >= hitTime)
-                {
-                    hitApplied = true;
-                    hitbox.ApplyDamage(stats.AttackDamage);
-                }
-                if (Time.time >= finishTime) IsAttacking = false;
+                if (attackProgress.HasFinished(animator)) CancelAttack();
             }
 
             if (Input.GetMouseButtonDown(0)) TryAttack();
@@ -69,19 +66,43 @@ namespace ThroneSiege.Player
 
         public bool TryAttack()
         {
-            if (!isActiveAndEnabled || !stats.IsBattleActive || stats.Health.IsDead ||
+            if (!isActiveAndEnabled || !CanFight ||
                 IsAttacking || Time.time < nextAttackTime || !animator.isActiveAndEnabled ||
                 animator.runtimeAnimatorController == null || animator.IsInTransition(0) ||
+                !animator.GetBool("OnGround") ||
                 !animator.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
                 return false;
 
             IsAttacking = true;
             hitApplied = false;
-            hitTime = Time.time + Mathf.Clamp(hitDelay, 0f, attackDuration);
-            finishTime = Time.time + attackDuration;
+            attackProgress.Begin("Attack1");
             nextAttackTime = Time.time + stats.AttackCooldown;
+            restoreInput = input != null && input.enabled;
+            if (input != null) input.enabled = false;
+            GetComponent<InPlaceRootMotionFallback>()?.ClearJumpRequest();
+            if (body != null) body.velocity = new Vector3(0f, body.velocity.y, 0f);
+            animator.ResetTrigger("JumpRequested");
+            animator.SetFloat("MoveSpeed", 0f);
+            animator.SetFloat("Forward", 0f);
+            animator.SetFloat("Turn", 0f);
             animator.SetTrigger("Attack1");
             return true;
+        }
+
+        private bool CanFight => stats.IsBattleActive && !stats.Health.IsDead &&
+            (battle == null || battle.State == BattleManager.BattleState.Fighting);
+
+        // Called only by the project-owned Attack1 animation.
+        public void BasicAttackImpact()
+        {
+            if (!isActiveAndEnabled || !IsAttacking || hitApplied || !CanFight) return;
+            hitApplied = true;
+            hitbox.ApplyDamage(stats.AttackDamage);
+        }
+
+        public void BasicAttackFinished()
+        {
+            if (IsAttacking) CancelAttack();
         }
 
         private void CancelAttack()
@@ -89,6 +110,9 @@ namespace ThroneSiege.Player
             if (!IsAttacking) return;
             IsAttacking = false;
             animator.ResetTrigger("Attack1");
+            GetComponent<InPlaceRootMotionFallback>()?.ClearJumpRequest();
+            if (restoreInput && input != null && !stats.Health.IsDead) input.enabled = true;
+            restoreInput = false;
         }
 
         private void ResetCombat()

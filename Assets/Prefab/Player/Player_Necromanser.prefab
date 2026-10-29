@@ -6731,6 +6731,8 @@ GameObject:
   - component: {fileID: 5628235523788800149}
   - component: {fileID: 5628235523788800152}
   - component: {fileID: 5628235523788800153}
+  - component: {fileID: 8528950417555603097}
+  - component: {fileID: 4862454068447619571}
   m_Layer: 0
   m_Name: Player_Necromanser
   m_TagString: Player
@@ -6869,8 +6871,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1ad1658f801d90f49bee94e64d854382, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   maxHealth: 100
   drivePlayerAnimator: 1
   currentHealth: 0
@@ -6884,13 +6886,41 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4124c48b723844b9aad017a85b27c934, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   maxHealth: 100
   baseAttackDamage: 25
   attackCooldown: 1
   phaseTwoHealthRatio: 0.5
   phaseTwoDamageMultiplier: 1.5
+--- !u!114 &8528950417555603097
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5628830644458369402}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f6c391c71bd410b9273eae04d7ea139, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  range: 2.5
+  angle: 100
+  originHeight: 1
+--- !u!114 &4862454068447619571
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5628830644458369402}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cbc5047059704bb5aa89a1eaa296e967, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  attackDuration: 4.9583335
 --- !u!1 &5628833395485450052
 GameObject:
   m_ObjectHideFlags: 0

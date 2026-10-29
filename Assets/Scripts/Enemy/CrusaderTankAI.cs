@@ -12,9 +12,6 @@ namespace ThroneSiege.AI
         [SerializeField] private Transform target;
         [SerializeField, Min(0f)] private float detectionRange = 15f;
         [SerializeField, Min(0.1f)] private float attackRange = 1.9f;
-        [Tooltip("공격 1 / 공격 2 / 방패 공격 순서 (초)")]
-        [SerializeField] private float[] attackDurations = { 2f, 2f, 2f };
-        [SerializeField] private float hitDuration = 0.6f;
         [field: SerializeField] public BehaviourState State { get; private set; }
         public Transform Target => target;
         private NavMeshAgent agent;
@@ -23,7 +20,7 @@ namespace ThroneSiege.AI
         private EnemyStats stats;
         private ActorHealth targetHealth;
         private float nextAttackTime;
-        private float stateEndTime;
+        private readonly AnimatorActionProgress actionProgress = new AnimatorActionProgress();
         private float repathTime;
         private bool impactConsumed;
         private bool facingLocked;
@@ -43,8 +40,7 @@ namespace ThroneSiege.AI
             animator.SetFloat("Speed", 0f);
         }
 
-        public void Configure(Transform player, float[] durations, float reactionDuration)
-        { target = player; attackDurations = durations; hitDuration = reactionDuration; }
+        public void Configure(Transform player) { target = player; }
 
         private void Awake()
         {
@@ -78,13 +74,13 @@ namespace ThroneSiege.AI
             if (State == BehaviourState.Attack)
             {
                 if (!facingLocked && target != null) FaceTarget();
-                // 애니메이션 이벤트가 누락돼도 제한 시간이 지나면 공격 상태를 종료한다.
-                if (Time.time >= stateEndTime) AttackFinished();
+                // 잘린 종료 이벤트 대신 실제 애니메이션의 종료/전이도 감지한다.
+                if (actionProgress.HasFinished(animator)) AttackFinished();
                 return;
             }
             if (State == BehaviourState.Hit)
             {
-                if (Time.time < stateEndTime) return;
+                if (!actionProgress.HasFinished(animator)) return;
                 State = BehaviourState.CombatIdle;
             }
             if (target == null || (targetHealth != null && targetHealth.IsDead))
@@ -130,7 +126,7 @@ namespace ThroneSiege.AI
             comboIndex++;
             animator.SetInteger("AttackIndex", attackIndex);
             animator.SetTrigger("Attack");
-            stateEndTime = Time.time + attackDurations[attackIndex] + 0.4f;
+            actionProgress.Begin(attackIndex == 2 ? "ShieldAttack" : attackIndex == 1 ? "Attack2" : "Attack1");
         }
 
         // 프로젝트 전용 공격 클립에서 호출한다. 공격 방향을 고정해 플레이어가 피할 틈을 준다.
@@ -163,7 +159,7 @@ namespace ThroneSiege.AI
             // 일반 피격으로 이미 시작한 공격을 중단하지 않는다.
             if (!battleActive || State == BehaviourState.Attack || State == BehaviourState.Hit) return;
             Stop(); State = BehaviourState.Hit;
-            stateEndTime = Time.time + hitDuration;
+            actionProgress.Begin("Hit");
             animator.SetTrigger("Hit");
         }
 

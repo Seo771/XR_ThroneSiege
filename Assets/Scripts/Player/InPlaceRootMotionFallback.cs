@@ -22,19 +22,23 @@ namespace ThroneSiege.Player
         private CapsuleCollider capsule;
         private Transform cameraTransform;
         private bool jumpRequested;
+        private PlayerCombat combat;
+        public bool MovementLocked => combat != null && combat.IsAttacking;
 
-        public void RequestJump() { jumpRequested = true; }
+        public void RequestJump() { if (!MovementLocked) jumpRequested = true; }
+        public void ClearJumpRequest() { jumpRequested = false; }
 
         private void Update()
         {
             // Standard Assets는 Grounded 상태에서만 점프를 허용한다.
             // 원본을 수정하지 않고 플레이어의 기본 Idle 상태에서도 점프하도록 보완한다.
-            jumpRequested |= Input.GetButtonDown("Jump");
+            if (MovementLocked) jumpRequested = false;
+            else jumpRequested |= Input.GetButtonDown("Jump");
         }
 
         private void FixedUpdate()
         {
-            if (jumpRequested && animator.GetCurrentAnimatorStateInfo(0).IsName("Idle")
+            if (!MovementLocked && jumpRequested && animator.GetCurrentAnimatorStateInfo(0).IsName("Idle")
                 && !Input.GetKey(KeyCode.C) && IsGrounded() && body.velocity.y <= 0.1f)
             {
                 Vector3 velocity = body.velocity;
@@ -55,6 +59,7 @@ namespace ThroneSiege.Player
             animator = GetComponent<Animator>();
             body = GetComponent<Rigidbody>();
             capsule = GetComponent<CapsuleCollider>();
+            combat = GetComponent<PlayerCombat>();
 
             if (Camera.main != null)
             {
@@ -72,7 +77,7 @@ namespace ThroneSiege.Player
             // 입력 벡터의 크기로 방향에 관계없이 이동 애니메이션을 갱신한다.
             float speed = Vector2.ClampMagnitude(new Vector2(
                 Input.GetAxis("Horizontal"), Input.GetAxis("Vertical")), 1f).magnitude;
-            animator.SetFloat("MoveSpeed", speed, 0.1f, Time.deltaTime);
+            animator.SetFloat("MoveSpeed", MovementLocked ? 0f : speed, 0.1f, Time.deltaTime);
         }
 
         private void UpdateGroundParameters()
@@ -84,6 +89,13 @@ namespace ThroneSiege.Player
 
         private void OnAnimatorMove()
         {
+            // PlayerStats can rebind/update the Animator before this Awake runs.
+            if (animator == null || body == null || capsule == null) return;
+            if (MovementLocked)
+            {
+                body.velocity = new Vector3(0f, body.velocity.y, 0f);
+                return;
+            }
             // 유효한 루트 이동이 있는 클립은 ThirdPersonCharacter가 처리한다.
             if (animator.deltaPosition.sqrMagnitude > rootMotionThreshold * rootMotionThreshold)
             {

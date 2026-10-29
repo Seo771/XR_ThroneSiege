@@ -20,6 +20,17 @@ namespace ThroneSiege.Editor
         private static int phase;
         private static bool sawChase;
         private static float startingHealth;
+        private static float hitStartedAt;
+        private static float maximumHitTime;
+        private static bool accelerated;
+
+        [MenuItem("ThroneSiege/Test Fast Enemy Animation Timing")]
+        public static void RunFast()
+        {
+            if (EditorApplication.isPlaying) return;
+            SessionState.SetBool(Key + ".Fast", true);
+            Run();
+        }
 
         static CrusaderAISmokeTest() { EditorApplication.playModeStateChanged += OnPlayMode; }
 
@@ -36,6 +47,8 @@ namespace ThroneSiege.Editor
             if (state == PlayModeStateChange.ExitingPlayMode) EditorApplication.update -= Tick;
             if (state != PlayModeStateChange.EnteredPlayMode || !SessionState.GetBool(Key, false)) return;
             SessionState.SetBool(Key, false);
+            accelerated = SessionState.GetBool(Key + ".Fast", false);
+            SessionState.SetBool(Key + ".Fast", false);
             ai = UnityEngine.Object.FindObjectOfType<CrusaderTankAI>();
             GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
             if (ai == null || playerObject == null) { Finish(false, "Missing AI or player."); return; }
@@ -48,6 +61,19 @@ namespace ThroneSiege.Editor
             Rigidbody body = playerObject.GetComponent<Rigidbody>();
             body.velocity = Vector3.zero; body.isKinematic = true;
             playerObject.GetComponent<Animator>().applyRootMotion = false;
+            if (accelerated)
+            {
+                Animator enemyAnimator = ai.GetComponent<Animator>();
+                enemyAnimator.speed = 2f;
+                maximumHitTime = enemyAnimator.runtimeAnimatorController.animationClips.First(c => c.name == "Hit").length * 0.5f + 0.4f;
+                if (NavMesh.SamplePosition(playerObject.transform.position, out NavMeshHit playerPoint, 10f, NavMesh.AllAreas))
+                {
+                    body.position = playerPoint.position + Vector3.up * 0.05f;
+                    playerObject.transform.position = body.position;
+                }
+                if (NavMesh.SamplePosition(playerObject.transform.position + Vector3.forward * 4f, out NavMeshHit enemyPoint, 8f, NavMesh.AllAreas))
+                    ai.GetComponent<NavMeshAgent>().Warp(enemyPoint.position);
+            }
             startingHealth = player.CurrentHealth;
             phase = 0; sawChase = false;
             deadline = EditorApplication.timeSinceStartup + 25;
@@ -69,11 +95,14 @@ namespace ThroneSiege.Editor
             if (phase == 1 && ai.State == CrusaderTankAI.BehaviourState.CombatIdle)
             {
                 ai.GetComponent<ActorHealth>().TakeDamage(5f);
+                hitStartedAt = Time.time;
                 if (ai.State != CrusaderTankAI.BehaviourState.Hit) { Finish(false, "Hit reaction failed."); return; }
                 phase = 2;
             }
             if (phase == 2 && ai.State != CrusaderTankAI.BehaviourState.Hit)
             {
+                if (accelerated && Time.time - hitStartedAt > maximumHitTime)
+                { Finish(false, "Hit recovery still waits for the old clip duration."); return; }
                 ai.GetComponent<ActorHealth>().TakeDamage(1000f);
                 bool valid = ai.State == CrusaderTankAI.BehaviourState.Death &&
                     !ai.GetComponent<NavMeshAgent>().enabled &&
