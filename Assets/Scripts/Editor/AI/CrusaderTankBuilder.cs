@@ -55,6 +55,10 @@ namespace ThroneSiege.Editor
             controller.AddParameter("Attack", AnimatorControllerParameterType.Trigger);
             controller.AddParameter("Hit", AnimatorControllerParameterType.Trigger);
             controller.AddParameter("Dead", AnimatorControllerParameterType.Bool);
+            foreach (string name in new[] { "Forward", "Turn", "Jump", "JumpLeg" })
+                controller.AddParameter(name, AnimatorControllerParameterType.Float);
+            controller.AddParameter("Crouch", AnimatorControllerParameterType.Bool);
+            controller.AddParameter("OnGround", AnimatorControllerParameterType.Bool);
             AnimatorStateMachine sm = controller.layers[0].stateMachine;
             var locomotion = new BlendTree { name = "Idle Walk Run", blendType = BlendTreeType.Simple1D,
                 blendParameter = "Speed", useAutomaticThresholds = false };
@@ -115,7 +119,10 @@ namespace ThroneSiege.Editor
                     component is UnityStandardAssets.Characters.ThirdPerson.ThirdPersonUserControl ||
                     component is ThroneSiege.Player.InPlaceRootMotionFallback) component.enabled = false;
             Rigidbody enemyBody = enemy.GetComponent<Rigidbody>();
-            if (enemyBody != null) { enemyBody.isKinematic = true; enemyBody.useGravity = false; }
+            if (enemyBody != null) { enemyBody.isKinematic = false; enemyBody.useGravity = true; }
+            var standardCharacter = enemy.GetComponent<UnityStandardAssets.Characters.ThirdPerson.ThirdPersonCharacter>();
+            if (standardCharacter != null) standardCharacter.enabled = true;
+            if (enemy.GetComponent<StandardAIAnimationBridge>() == null) enemy.AddComponent<StandardAIAnimationBridge>();
             enemy.transform.position = player.transform.position + new Vector3(3f, 0f, 2.5f);
             enemy.transform.rotation = Quaternion.LookRotation(player.transform.position - enemy.transform.position);
             Animator animator = enemy.GetComponent<Animator>();

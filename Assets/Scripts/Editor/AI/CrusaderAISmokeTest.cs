@@ -52,6 +52,8 @@ namespace ThroneSiege.Editor
             ai = UnityEngine.Object.FindObjectOfType<CrusaderTankAI>();
             GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
             if (ai == null || playerObject == null) { Finish(false, "Missing AI or player."); return; }
+            foreach (var other in UnityEngine.Object.FindObjectsOfType<CrusaderTankAI>())
+                if (other != ai) { other.SetBattleActive(false); other.enabled = false; }
             player = playerObject.GetComponent<ActorHealth>();
             if (player == null) { Finish(false, "Missing player health."); return; }
             foreach (MonoBehaviour component in playerObject.GetComponents<MonoBehaviour>())

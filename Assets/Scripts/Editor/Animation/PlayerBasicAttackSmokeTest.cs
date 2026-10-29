@@ -83,7 +83,7 @@ namespace ThroneSiege.Editor
         private static IEnumerator Delay(float seconds)
         { double until = EditorApplication.timeSinceStartup + seconds; while (EditorApplication.timeSinceStartup < until) yield return null; }
 
-        private static bool Idle() => animator.GetCurrentAnimatorStateInfo(0).IsName("Idle") && !animator.IsInTransition(0);
+        private static bool Idle() => animator.GetCurrentAnimatorStateInfo(0).IsName("Grounded") && !animator.IsInTransition(0);
         private static bool StartAttack()
         {
             bool started = combat.TryAttack();
@@ -123,6 +123,8 @@ namespace ThroneSiege.Editor
             }
             enemy = UnityEngine.Object.FindObjectsOfType<CrusaderTankAI>().First();
             enemyHealth = enemy.GetComponent<ActorHealth>();
+            foreach (var other in UnityEngine.Object.FindObjectsOfType<CrusaderTankAI>())
+                if (other != enemy) { other.SetBattleActive(false); other.enabled = false; }
             enemy.SetBattleActive(false); enemy.enabled = false;
             enemy.GetComponent<NavMeshAgent>().enabled = false;
             // A temporary isolated floor keeps map walls and enemy navigation out of

@@ -1,9 +1,11 @@
 using UnityEngine;
 using UnityEngine.AI;
 using ThroneSiege.Combat;
+using UnityStandardAssets.Characters.ThirdPerson;
 
 namespace ThroneSiege.AI
 {
+    [DefaultExecutionOrder(-20)]
     [RequireComponent(typeof(NavMeshAgent), typeof(Animator), typeof(ActorHealth))]
     [RequireComponent(typeof(EnemyStats))]
     public sealed class CrusaderTankAI : MonoBehaviour
@@ -21,7 +23,7 @@ namespace ThroneSiege.AI
         private ActorHealth targetHealth;
         private float nextAttackTime;
         private readonly AnimatorActionProgress actionProgress = new AnimatorActionProgress();
-        private float repathTime;
+        private AICharacterControl movement;
         private bool impactConsumed;
         private bool facingLocked;
         private int attackIndex;
@@ -45,6 +47,8 @@ namespace ThroneSiege.AI
         private void Awake()
         {
             agent = GetComponent<NavMeshAgent>();
+            movement = GetComponent<AICharacterControl>();
+            if (movement != null) movement.enabled = false;
             animator = GetComponent<Animator>();
             health = GetComponent<ActorHealth>();
             stats = GetComponent<EnemyStats>();
@@ -70,7 +74,6 @@ namespace ThroneSiege.AI
         private void Update()
         {
             if (!battleActive || State == BehaviourState.Death) return;
-            animator.SetFloat("Speed", agent.enabled && agent.isOnNavMesh ? agent.velocity.magnitude : 0f, 0.1f, Time.deltaTime);
             if (State == BehaviourState.Attack)
             {
                 if (!facingLocked && target != null) FaceTarget();
@@ -100,11 +103,11 @@ namespace ThroneSiege.AI
                 agent.speed = distance > 4f ? stats.RunSpeed : stats.WalkSpeed;
                 agent.stoppingDistance = attackRange - 0.15f;
                 agent.isStopped = false;
-                if (Time.time >= repathTime)
-                { agent.SetDestination(target.position); repathTime = Time.time + 0.15f; }
-                Vector3 direction = agent.desiredVelocity;
-                direction.y = 0f;
-                if (direction.sqrMagnitude > 0.01f) FaceDirection(direction);
+                if (movement != null)
+                {
+                    movement.SetTarget(target);
+                    movement.enabled = true;
+                }
                 return;
             }
 
@@ -169,15 +172,28 @@ namespace ThroneSiege.AI
             animator.ResetTrigger("Attack"); animator.ResetTrigger("Hit");
             animator.SetBool("Dead", true);
             agent.enabled = false;
+            var body = GetComponent<Rigidbody>();
+            if (body != null)
+            {
+                body.velocity = Vector3.zero;
+                body.useGravity = false;
+                body.isKinematic = true;
+            }
             foreach (Collider collider in GetComponentsInChildren<Collider>()) collider.enabled = false;
         }
 
         private void Stop()
-        { if (agent.enabled && agent.isOnNavMesh) { agent.isStopped = true; agent.ResetPath(); } }
+        {
+            if (movement != null) { movement.enabled = false; movement.SetTarget(null); }
+            if (agent.enabled && agent.isOnNavMesh) { agent.isStopped = true; agent.ResetPath(); }
+            var body = GetComponent<Rigidbody>();
+            if (body != null && !body.isKinematic) body.velocity = new Vector3(0f, body.velocity.y, 0f);
+        }
         private void FaceTarget()
         { Vector3 direction = target.position - transform.position; direction.y = 0f; if (direction.sqrMagnitude > 0.001f) FaceDirection(direction); }
         private void FaceDirection(Vector3 direction)
         { transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(direction), 240f * Time.deltaTime); }
+        private void OnDisable() { if (agent != null) Stop(); }
         private void OnDestroy() { if (health != null) { health.Damaged -= OnDamaged; health.Died -= OnDied; } }
     }
 }

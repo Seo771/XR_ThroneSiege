@@ -6733,6 +6733,7 @@ GameObject:
   - component: {fileID: 5628235523788800153}
   - component: {fileID: 8528950417555603097}
   - component: {fileID: 4862454068447619571}
+  - component: {fileID: 4862454068447619572}
   m_Layer: 0
   m_Name: Player_Necromanser
   m_TagString: Player
@@ -6839,12 +6840,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_MovingTurnSpeed: 360
   m_StationaryTurnSpeed: 180
-  m_JumpPower: 12
+  m_JumpPower: 4
   m_GravityMultiplier: 2
   m_RunCycleLegOffset: 0.2
   m_MoveSpeedMultiplier: 1
   m_AnimSpeedMultiplier: 1
-  m_GroundCheckDistance: 0.1
+  m_GroundCheckDistance: 0.35
 --- !u!114 &5628235523788800149
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6860,7 +6861,6 @@ MonoBehaviour:
   moveSpeed: 3.5
   groundProbeDistance: 0.35
   rootMotionThreshold: 0.0001
-  jumpPower: 12
 --- !u!114 &5628235523788800152
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6918,9 +6918,24 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cbc5047059704bb5aa89a1eaa296e967, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+--- !u!114 &4862454068447619572
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5628830644458369402}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 233460b20a384d1faefeb2a61dd88670, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  attackDuration: 4.9583335
+  projectilePrefab: {fileID: 700001, guid: 6350d39f0c6f68745b9db30690a6cfd4, type: 3}
+  damage: 40
+  cooldown: 5
+  spawnOffset: {x: 0, y: 1.2, z: 0.7}
 --- !u!1 &5628833395485450052
 GameObject:
   m_ObjectHideFlags: 0

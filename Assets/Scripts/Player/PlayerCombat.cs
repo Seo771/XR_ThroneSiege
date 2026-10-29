@@ -67,10 +67,11 @@ namespace ThroneSiege.Player
         public bool TryAttack()
         {
             if (!isActiveAndEnabled || !CanFight ||
+                (GetComponent<PlayerSkullSkill>() != null && GetComponent<PlayerSkullSkill>().UsedThisFrame) ||
                 IsAttacking || Time.time < nextAttackTime || !animator.isActiveAndEnabled ||
                 animator.runtimeAnimatorController == null || animator.IsInTransition(0) ||
                 !animator.GetBool("OnGround") ||
-                !animator.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
+                !animator.GetCurrentAnimatorStateInfo(0).IsName("Grounded"))
                 return false;
 
             IsAttacking = true;

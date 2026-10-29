@@ -125,7 +125,7 @@ namespace ThroneSiege.Editor
             AnimationClip idle,
             AnimationClip walk)
         {
-            AnimatorState grounded = stateMachine.AddState("Idle", new Vector3(30, 80));
+            AnimatorState grounded = stateMachine.AddState("Grounded", new Vector3(30, 80));
             BlendTree blendTree = new BlendTree
             {
                 name = "Idle Walk",

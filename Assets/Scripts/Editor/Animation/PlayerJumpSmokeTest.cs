@@ -50,7 +50,7 @@ namespace ThroneSiege.Editor
             { Finish(false, "Jump/landing timeout; OnGround=" + animator.GetBool("OnGround") + ", velocity=" + motor.GetComponent<Rigidbody>().velocity); return; }
             AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
             if (state.IsName("Jump")) sawJump = true;
-            if (sawJump && state.IsName("Idle") && !animator.IsInTransition(0) && animator.GetBool("OnGround"))
+            if (sawJump && state.IsName("Grounded") && !animator.IsInTransition(0) && animator.GetBool("OnGround"))
             {
                 jumps++;
                 if (Mathf.Abs(animator.GetFloat("Jump")) > 0.001f) { Finish(false, "Jump float not reset on landing."); return; }
@@ -58,7 +58,7 @@ namespace ThroneSiege.Editor
                 sawJump = false;
                 nextJump = EditorApplication.timeSinceStartup + 0.5;
             }
-            if (!sawJump && nextJump > 0 && EditorApplication.timeSinceStartup >= nextJump && state.IsName("Idle"))
+            if (!sawJump && nextJump > 0 && EditorApplication.timeSinceStartup >= nextJump && state.IsName("Grounded"))
             { motor.RequestJump(); nextJump = -1; deadline = EditorApplication.timeSinceStartup + 8; }
         }
 

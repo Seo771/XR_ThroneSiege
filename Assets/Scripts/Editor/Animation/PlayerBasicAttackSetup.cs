@@ -38,7 +38,7 @@ namespace ThroneSiege.Editor
             EditorUtility.SetDirty(clip);
 
             AnimatorStateMachine sm = controller.layers[0].stateMachine;
-            AnimatorState idle = sm.states.First(state => state.state.name == "Idle").state;
+            AnimatorState idle = sm.states.First(state => state.state.name == "Grounded").state;
             AnimatorState attack = sm.states.First(state => state.state.name == "Attack1").state;
             attack.motion = clip;
             // Only Idle can initiate a basic attack. Death cannot be interrupted.
