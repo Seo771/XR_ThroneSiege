@@ -2079,7 +2079,8 @@ Transform:
   m_LocalPosition: {x: -62.9, y: 0, z: -66.9}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 2400000001}
   m_Father: {fileID: 1932518970}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -3599,7 +3600,7 @@ Light:
   serializedVersion: 10
   m_Type: 1
   m_Shape: 0
-  m_Color: {r: 0.72, g: 0.76, b: 1, a: 1}
+  m_Color: {r: 1, g: 0.68465215, b: 0.6556604, a: 1}
   m_Intensity: 0.45
   m_Range: 10
   m_SpotAngle: 30
@@ -5928,7 +5929,6 @@ Transform:
   - {fileID: 738184007}
   - {fileID: 1336316227}
   - {fileID: 1806289609}
-  - {fileID: 2400000001}
   m_Father: {fileID: 0}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -6226,7 +6226,11 @@ PrefabInstance:
       objectReference: {fileID: 306651689}
     - target: {fileID: 8718752992369498670, guid: e7d42baba68eb1d4ab2cd0700b226bc4, type: 3}
       propertyPath: m_TurnSpeed
-      value: 3
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 8718752992369498670, guid: e7d42baba68eb1d4ab2cd0700b226bc4, type: 3}
+      propertyPath: m_SmoothTurnTime
+      value: 0.5
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: e7d42baba68eb1d4ab2cd0700b226bc4, type: 3}
@@ -9418,12 +9422,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2400000000}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 62.9, y: 0, z: 66.9}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1932518970}
-  m_RootOrder: 4
+  m_Father: {fileID: 558492042}
+  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!82 &2400000002
 AudioSource:
@@ -9437,7 +9441,7 @@ AudioSource:
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 8300000, guid: 536de6be2b8f4aa49d4a901e455c8993, type: 3}
   m_PlayOnAwake: 1
-  m_Volume: 0.15
+  m_Volume: 0.1
   m_Pitch: 1
   Loop: 1
   Mute: 0
