@@ -8,6 +8,7 @@ namespace ThroneSiege.Player
     public sealed class SkullExplosion : MonoBehaviour
     {
         [SerializeField] private GameObject skullVisual;
+        [SerializeField] private AudioSource explosionAudio;
         private void OnEnable()
         {
             var projectile = GetComponentInParent<SkullProjectile>();
@@ -16,6 +17,12 @@ namespace ThroneSiege.Player
             foreach (var force in GetComponentsInChildren<UnityStandardAssets.Effects.ExplosionPhysicsForce>(true))
                 force.enabled = false;
             float duration = 0.1f;
+            if (explosionAudio != null && explosionAudio.clip != null)
+            {
+                explosionAudio.loop = false;
+                explosionAudio.PlayOneShot(explosionAudio.clip, projectile.SoundVolumeScale);
+                duration = Mathf.Max(duration, explosionAudio.clip.length / Mathf.Max(0.01f, Mathf.Abs(explosionAudio.pitch)));
+            }
             foreach (var particle in GetComponentsInChildren<ParticleSystem>(true))
             {
                 var main = particle.main;

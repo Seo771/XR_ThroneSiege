@@ -28,6 +28,7 @@ namespace ThroneSiege.Combat
         public int TotalEnemies => enemyHealths.Count;
         public int RemainingEnemies { get; private set; }
         public bool CanStartBattle => ready && State == BattleState.Waiting;
+        public bool IsPhaseTransitionPaused { get; private set; }
         public event Action<BattleState> StateChanged;
         public event Action<int> RemainingEnemiesChanged;
 
@@ -122,9 +123,19 @@ namespace ThroneSiege.Combat
 
         private void StopCombat()
         {
+            SetPhaseTransitionPaused(false);
             if (player != null) player.EndBattle();
             foreach (var enemy in participants)
                 if (enemy != null) enemy.SetBattleActive(false);
+        }
+
+        public void SetPhaseTransitionPaused(bool paused)
+        {
+            if (paused && State != BattleState.Fighting) return;
+            if (IsPhaseTransitionPaused == paused) return;
+            IsPhaseTransitionPaused = paused;
+            foreach (var enemy in participants)
+                if (enemy != null) enemy.SetCinematicPaused(paused);
         }
 
         public void RestartBattle()

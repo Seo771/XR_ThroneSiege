@@ -15,6 +15,7 @@ namespace ThroneSiege.Combat
         public float MaxHealth => maxHealth;
         public float HealthRatio => currentHealth / maxHealth;
         public bool IsDead => CurrentHealth <= 0f;
+        public bool IsInvulnerable { get; private set; }
         public event Action HealthChanged;
         public event Action Damaged;
         public event Action Died;
@@ -31,6 +32,7 @@ namespace ThroneSiege.Combat
         {
             maxHealth = Mathf.Max(1f, maximum);
             currentHealth = maxHealth;
+            IsInvulnerable = false;
             initialized = true;
             foreach (MonoBehaviour component in stoppedPlayerComponents)
                 if (component != null) component.enabled = true;
@@ -51,7 +53,7 @@ namespace ThroneSiege.Combat
 
         public void TakeDamage(float amount)
         {
-            if (IsDead || amount <= 0f) return;
+            if (IsDead || IsInvulnerable || amount <= 0f) return;
             currentHealth = Mathf.Max(0f, CurrentHealth - amount);
             if (IsDead)
             {
@@ -75,7 +77,7 @@ namespace ThroneSiege.Combat
             else
             {
                 var playerCombat = drivePlayerAnimator ? GetComponent<ThroneSiege.Player.PlayerCombat>() : null;
-                bool suppressHitReaction = playerCombat != null && playerCombat.IsAttacking;
+                bool suppressHitReaction = playerCombat != null && (playerCombat.IsAttacking || playerCombat.IsTransforming);
                 Damaged?.Invoke();
                 if (drivePlayerAnimator && !suppressHitReaction) GetComponent<Animator>()?.SetTrigger("Hit");
             }
@@ -83,5 +85,6 @@ namespace ThroneSiege.Combat
         }
 
         public void ConfigurePlayer() { drivePlayerAnimator = true; }
+        public void SetInvulnerable(bool value) { IsInvulnerable = value; }
     }
 }

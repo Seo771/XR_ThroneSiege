@@ -4,7 +4,7 @@ using UnityEngine.AI;
 
 namespace ThroneSiege.AI
 {
-    // 지정한 바닥 콜라이더만 사용해 테스트 전투장의 NavMesh를 실행 시 생성한다.
+    // 지정한 바닥 콜라이더로 전투장의 NavMesh를 실행 시 생성한다.
     [DefaultExecutionOrder(-500)]
     public sealed class RuntimeArenaNavMesh : MonoBehaviour
     {
@@ -12,7 +12,6 @@ namespace ThroneSiege.AI
         [SerializeField] private MeshCollider[] floors;
         private NavMeshData data;
         private NavMeshDataInstance instance;
-        public void SetFloors(MeshCollider[] value) { floors = value; }
 
         private void Awake()
         {

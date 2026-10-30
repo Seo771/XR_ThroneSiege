@@ -29,6 +29,31 @@ namespace ThroneSiege.AI
         private int attackIndex;
         private int comboIndex;
         private bool battleActive = true;
+        private bool cinematicPaused;
+
+        public void SetCinematicPaused(bool paused)
+        {
+            if (cinematicPaused == paused) return;
+            cinematicPaused = paused;
+            if (health == null || health.IsDead) return;
+            if (paused)
+            {
+                Stop();
+                impactConsumed = true;
+                facingLocked = true;
+                State = BehaviourState.Idle;
+                animator.ResetTrigger("Attack");
+                animator.ResetTrigger("Hit");
+                animator.SetFloat("Speed", 0f);
+                animator.SetBool("InCombat", false);
+                animator.CrossFadeInFixedTime("Idle", 0.08f, 0);
+            }
+            else
+            {
+                // Interrupted attacks never resume their old impact window.
+                nextAttackTime = Mathf.Max(nextAttackTime, Time.time + stats.AttackCooldown);
+            }
+        }
 
         public void SetBattleActive(bool active)
         {
@@ -40,6 +65,8 @@ namespace ThroneSiege.AI
             animator.ResetTrigger("Hit");
             animator.SetBool("InCombat", false);
             animator.SetFloat("Speed", 0f);
+            if (animator.isActiveAndEnabled && animator.runtimeAnimatorController != null)
+                animator.CrossFadeInFixedTime("Idle", 0.08f, 0);
         }
 
         public void Configure(Transform player) { target = player; }
@@ -73,7 +100,7 @@ namespace ThroneSiege.AI
 
         private void Update()
         {
-            if (!battleActive || State == BehaviourState.Death) return;
+            if (!battleActive || cinematicPaused || State == BehaviourState.Death) return;
             if (State == BehaviourState.Attack)
             {
                 if (!facingLocked && target != null) FaceTarget();
@@ -99,7 +126,7 @@ namespace ThroneSiege.AI
             {
                 State = BehaviourState.Chase;
                 animator.SetBool("InCombat", false);
-                if (!agent.enabled || !agent.isOnNavMesh) return;
+                if (!agent.enabled || !agent.isOnNavMesh) { Stop(); return; }
                 agent.speed = distance > 4f ? stats.RunSpeed : stats.WalkSpeed;
                 agent.stoppingDistance = attackRange - 0.15f;
                 agent.isStopped = false;
@@ -116,7 +143,7 @@ namespace ThroneSiege.AI
             animator.SetBool("InCombat", true);
             FaceTarget();
             if (Time.time >= nextAttackTime && distance <= attackRange &&
-                Vector3.Angle(transform.forward, target.position - transform.position) < 20f)
+                Vector3.Angle(transform.forward, target.position - transform.position) < 20f && HasClearAttackPath())
                 BeginAttack(distance);
         }
 
@@ -133,21 +160,32 @@ namespace ThroneSiege.AI
         }
 
         // 프로젝트 전용 공격 클립에서 호출한다. 공격 방향을 고정해 플레이어가 피할 틈을 준다.
-        public void LockAttackFacing() { if (State == BehaviourState.Attack) facingLocked = true; }
+        public void LockAttackFacing() { if (isActiveAndEnabled && State == BehaviourState.Attack) facingLocked = true; }
 
         public void AttackImpact()
         {
-            if (!battleActive || State != BehaviourState.Attack || health.IsDead || impactConsumed) return;
+            if (!isActiveAndEnabled || !battleActive || cinematicPaused || State != BehaviourState.Attack || health.IsDead || impactConsumed) return;
             impactConsumed = true;
             if (target == null || targetHealth == null || targetHealth.IsDead) return;
             Vector3 offset = target.position - transform.position;
             if (offset.magnitude > attackRange + 0.25f || Vector3.Angle(transform.forward, offset) > 65f) return;
-            // 두 캐릭터 사이에 장애물이 있으면 피해를 막는다. 양측 캐릭터의 콜라이더는 제외한다.
+            if (!HasClearAttackPath()) return;
+            targetHealth.TakeDamage(attackIndex == 2 ? stats.AttackDamage * 0.75f : stats.AttackDamage);
+        }
+
+        private bool HasClearAttackPath()
+        {
+            if (target == null) return false;
             Vector3 origin = transform.position + Vector3.up;
+            Vector3 offset = target.position + Vector3.up - origin;
+            // Detect other bodies already overlapping the ray origin as well.
+            foreach (var collider in Physics.OverlapSphere(origin, 0.03f,
+                Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                if (!collider.transform.IsChildOf(transform) && !collider.transform.IsChildOf(target)) return false;
             foreach (RaycastHit hit in Physics.RaycastAll(origin, offset.normalized, offset.magnitude,
                 Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
-                if (!hit.transform.IsChildOf(transform) && !hit.transform.IsChildOf(target)) return;
-            targetHealth.TakeDamage(attackIndex == 2 ? stats.AttackDamage * 0.75f : stats.AttackDamage);
+                if (!hit.transform.IsChildOf(transform) && !hit.transform.IsChildOf(target)) return false;
+            return true;
         }
 
         public void AttackFinished()
@@ -160,7 +198,7 @@ namespace ThroneSiege.AI
         private void OnDamaged()
         {
             // 일반 피격으로 이미 시작한 공격을 중단하지 않는다.
-            if (!battleActive || State == BehaviourState.Attack || State == BehaviourState.Hit) return;
+            if (!isActiveAndEnabled || !battleActive || cinematicPaused || State == BehaviourState.Attack || State == BehaviourState.Hit) return;
             Stop(); State = BehaviourState.Hit;
             actionProgress.Begin("Hit");
             animator.SetTrigger("Hit");
@@ -184,6 +222,7 @@ namespace ThroneSiege.AI
 
         private void Stop()
         {
+            GetComponent<StandardAIAnimationBridge>()?.CancelRepel();
             if (movement != null) { movement.enabled = false; movement.SetTarget(null); }
             if (agent.enabled && agent.isOnNavMesh) { agent.isStopped = true; agent.ResetPath(); }
             var body = GetComponent<Rigidbody>();

@@ -12,6 +12,7 @@ namespace ThroneSiege.Player
         [SerializeField, Min(0f)] private float damage = 40f;
         [SerializeField, Min(0f)] private float cooldown = 5f;
         [SerializeField] private Vector3 spawnOffset = new Vector3(0f, 1.2f, 0.7f);
+        [SerializeField, Range(0f, 60f)] private float phaseTwoSpreadAngle = 15f;
         public float CooldownRemaining => Mathf.Max(0f, nextUseTime - Time.time);
         public bool UsedThisFrame => lastUseFrame == Time.frameCount;
         private PlayerStats stats;
@@ -37,7 +38,7 @@ namespace ThroneSiege.Player
         public bool TryUse()
         {
             if (!isActiveAndEnabled || projectilePrefab == null || !stats.IsBattleActive || stats.Health.IsDead ||
-                combat.IsAttacking || Time.time < nextUseTime ||
+                combat.IsAttacking || combat.IsTransforming || combat.IsPhaseTwoPending || Time.time < nextUseTime ||
                 (battle != null && battle.State != BattleManager.BattleState.Fighting) ||
                 animator == null || !animator.isActiveAndEnabled || animator.runtimeAnimatorController == null ||
                 animator.IsInTransition(0) || !animator.GetCurrentAnimatorStateInfo(0).IsName("Grounded") ||
@@ -51,8 +52,22 @@ namespace ThroneSiege.Player
                 if (!hit.transform.IsChildOf(transform)) return false;
             nextUseTime = Time.time + cooldown;
             lastUseFrame = Time.frameCount;
-            var projectile = Instantiate(projectilePrefab, origin + offset, Quaternion.LookRotation(transform.forward));
-            projectile.Launch(stats, battle, transform.forward, damage);
+            int count = stats.IsPhaseTwo ? 3 : 1;
+            var projectiles = new SkullProjectile[count];
+            for (int i = 0; i < count; i++)
+            {
+                float angle = count == 1 ? 0f : (i - 1) * phaseTwoSpreadAngle;
+                Vector3 direction = Quaternion.AngleAxis(angle, Vector3.up) * transform.forward;
+                var projectile = Instantiate(projectilePrefab, origin + offset, Quaternion.LookRotation(direction));
+                projectile.Launch(stats, battle, direction, damage, 1f / count);
+                // All shots begin at the same point. Prevent the original
+                // ActivateTrigger from firing on the other shots in this volley.
+                for (int j = 0; j < i; j++)
+                    foreach (var current in projectile.GetComponentsInChildren<Collider>())
+                        foreach (var previous in projectiles[j].GetComponentsInChildren<Collider>())
+                            Physics.IgnoreCollision(current, previous);
+                projectiles[i] = projectile;
+            }
             return true;
         }
     }

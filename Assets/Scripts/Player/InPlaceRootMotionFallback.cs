@@ -13,6 +13,7 @@ namespace ThroneSiege.Player
     public sealed class InPlaceRootMotionFallback : MonoBehaviour
     {
         [SerializeField, Min(0f)] private float moveSpeed = 3.5f;
+        [SerializeField, Min(1f)] private float sprintMultiplier = 2f;
         [SerializeField, Min(0f)] private float groundProbeDistance = 0.35f;
         [Tooltip("이 값 이하의 루트 이동은 Standard Assets의 Forward 값으로 보완")]
         [SerializeField, Min(0f)] private float rootMotionThreshold = 0.0001f;
@@ -20,25 +21,17 @@ namespace ThroneSiege.Player
         private Animator animator;
         private Rigidbody body;
         private CapsuleCollider capsule;
-        private ThirdPersonCharacter character;
         private ThirdPersonUserControl input;
-        private bool jumpRequested;
         private PlayerCombat combat;
-        public bool MovementLocked => combat != null && combat.IsAttacking;
-
-        public void RequestJump() { if (!MovementLocked) jumpRequested = true; }
-        public void ClearJumpRequest() { jumpRequested = false; }
+        public bool MovementLocked => combat != null && (combat.IsAttacking || combat.IsTransforming);
 
         private void FixedUpdate()
         {
-            if (!MovementLocked && jumpRequested && input.enabled)
-                character.Move(Vector3.zero, false, true);
             // The original controller applies the jump impulse in Grounded.
             if (!MovementLocked && body.velocity.y > 0.1f &&
                 animator.GetCurrentAnimatorStateInfo(0).IsName("Grounded"))
                 animator.SetTrigger("JumpRequested");
 
-            jumpRequested = false;
             // ThirdPersonUserControl과 ThirdPersonCharacter 처리 후,
             // AnimatePhysics가 전이를 평가하기 전에 지면 상태를 반영한다.
             // LateUpdate에서 처리하면 다음 물리 갱신 때 이동 컴포넌트가 OnGround를 덮어쓴다.
@@ -52,7 +45,6 @@ namespace ThroneSiege.Player
             capsule = GetComponent<CapsuleCollider>();
             combat = GetComponent<PlayerCombat>();
 
-            character = GetComponent<ThirdPersonCharacter>();
             input = GetComponent<ThirdPersonUserControl>();
         }
 
@@ -96,6 +88,14 @@ namespace ThroneSiege.Player
             // Standard Assets has already read camera-relative input, rotated
             // the character, and written Forward. Do not read WASD a second time.
             float forward = input != null && input.enabled ? animator.GetFloat("Forward") : 0f;
+            if (!animator.GetBool("Crouch") && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)))
+            {
+                // The unmodified ThirdPersonUserControl halves input for LeftShift.
+                // Undo that scaling before applying sprint; clamp the damped value
+                // so pressing Shift cannot cause a brief excess-speed spike.
+                float compensation = Input.GetKey(KeyCode.LeftShift) ? 2f : 1f;
+                forward = Mathf.Clamp(forward * compensation, -1f, 1f) * sprintMultiplier;
+            }
             Vector3 desiredMove = transform.forward * forward;
 
             Vector3 velocity = body.velocity;
